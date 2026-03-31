@@ -1,242 +1,242 @@
 #!/usr/bin/env python3
-from math import inf as infinity
-from random import choice
+from math import inf as infinito
+from random import choice as escolher
 import platform
 import time
 from os import system
 
-HUMAN = -1
-COMP = +1
-board = [
+JOGADOR = -1
+PC = +1
+tabuleiro = [
     [0, 0, 0],
     [0, 0, 0],
     [0, 0, 0],
 ]
 
 
-def evaluate(state):
-    if wins(state, COMP):
-        score = +1
-    elif wins(state, HUMAN):
-        score = -1
+def avaliar(estado):
+    if venceu(estado, PC):
+        pontuacao = +1
+    elif venceu(estado, JOGADOR):
+        pontuacao = -1
     else:
-        score = 0
+        pontuacao = 0
 
-    return score
+    return pontuacao
 
 
-def wins(state, player):
-    win_state = [
-        [state[0][0], state[0][1], state[0][2]],
-        [state[1][0], state[1][1], state[1][2]],
-        [state[2][0], state[2][1], state[2][2]],
-        [state[0][0], state[1][0], state[2][0]],
-        [state[0][1], state[1][1], state[2][1]],
-        [state[0][2], state[1][2], state[2][2]],
-        [state[0][0], state[1][1], state[2][2]],
-        [state[2][0], state[1][1], state[0][2]],
+def venceu(estado, jogador_atual):
+    condicoes_vitoria = [
+        [estado[0][0], estado[0][1], estado[0][2]],
+        [estado[1][0], estado[1][1], estado[1][2]],
+        [estado[2][0], estado[2][1], estado[2][2]],
+        [estado[0][0], estado[1][0], estado[2][0]],
+        [estado[0][1], estado[1][1], estado[2][1]],
+        [estado[0][2], estado[1][2], estado[2][2]],
+        [estado[0][0], estado[1][1], estado[2][2]],
+        [estado[2][0], estado[1][1], estado[0][2]],
     ]
-    if [player, player, player] in win_state:
+    if [jogador_atual, jogador_atual, jogador_atual] in condicoes_vitoria:
         return True
     else:
         return False
 
 
-def game_over(state):
-    return wins(state, HUMAN) or wins(state, COMP)
+def fim_de_jogo(estado):
+    return venceu(estado, JOGADOR) or venceu(estado, PC)
 
 
-def empty_cells(state):
-    cells = []
+def casas_vazias(estado):
+    casas = []
 
-    for x, row in enumerate(state):
-        for y, cell in enumerate(row):
-            if cell == 0:
-                cells.append([x, y])
+    for x, linha in enumerate(estado):
+        for y, casa in enumerate(linha):
+            if casa == 0:
+                casas.append([x, y])
 
-    return cells
+    return casas
 
 
-def valid_move(x, y):
-    if [x, y] in empty_cells(board):
+def jogada_valida(x, y):
+    if [x, y] in casas_vazias(tabuleiro):
         return True
     else:
         return False
 
 
-def set_move(x, y, player):
-    if valid_move(x, y):
-        board[x][y] = player
+def fazer_jogada(x, y, jogador_atual):
+    if jogada_valida(x, y):
+        tabuleiro[x][y] = jogador_atual
         return True
     else:
         return False
 
 
-def minimax(state, depth, player):
-    if player == COMP:
-        best = [-1, -1, -infinity]
+def minimax(estado, profundidade, jogador_atual):
+    if jogador_atual == PC:
+        melhor = [-1, -1, -infinito]
     else:
-        best = [-1, -1, +infinity]
+        melhor = [-1, -1, +infinito]
 
-    if depth == 0 or game_over(state):
-        score = evaluate(state)
-        return [-1, -1, score]
+    if profundidade == 0 or fim_de_jogo(estado):
+        pontuacao = avaliar(estado)
+        return [-1, -1, pontuacao]
 
-    for cell in empty_cells(state):
-        x, y = cell[0], cell[1]
-        state[x][y] = player
-        score = minimax(state, depth - 1, -player)
-        state[x][y] = 0
-        score[0], score[1] = x, y
+    for casa in casas_vazias(estado):
+        x, y = casa[0], casa[1]
+        estado[x][y] = jogador_atual
+        pontuacao = minimax(estado, profundidade - 1, -jogador_atual)
+        estado[x][y] = 0
+        pontuacao[0], pontuacao[1] = x, y
 
-        if player == COMP:
-            if score[2] > best[2]:
-                best = score  # max value
+        if jogador_atual == PC:
+            if pontuacao[2] > melhor[2]:
+                melhor = pontuacao  # valor máximo
         else:
-            if score[2] < best[2]:
-                best = score  # min value
+            if pontuacao[2] < melhor[2]:
+                melhor = pontuacao  # valor mínimo
 
-    return best
+    return melhor
 
 
-def clean():
-    os_name = platform.system().lower()
-    if 'windows' in os_name:
+def limpar_tela():
+    nome_os = platform.system().lower()
+    if 'windows' in nome_os:
         system('cls')
     else:
         system('clear')
 
 
-def render(state, c_choice, h_choice):
-    chars = {
-        -1: h_choice,
-        +1: c_choice,
+def imprimir_tabuleiro(estado, escolha_pc, escolha_jogador):
+    simbolos = {
+        -1: escolha_jogador,
+        +1: escolha_pc,
         0: ' '
     }
-    str_line = '---------------'
+    linha_divisoria = '---------------'
 
-    print('\n' + str_line)
-    for row in state:
-        for cell in row:
-            symbol = chars[cell]
-            print(f'| {symbol} |', end='')
-        print('\n' + str_line)
+    print('\n' + linha_divisoria)
+    for linha in estado:
+        for casa in linha:
+            simbolo = simbolos[casa]
+            print(f'| {simbolo} |', end='')
+        print('\n' + linha_divisoria)
 
 
-def ai_turn(c_choice, h_choice):
-    depth = len(empty_cells(board))
-    if depth == 0 or game_over(board):
+def jogada_do_pc(escolha_pc, escolha_jogador):
+    profundidade = len(casas_vazias(tabuleiro))
+    if profundidade == 0 or fim_de_jogo(tabuleiro):
         return
 
-    clean()
-    print(f'Computer turn [{c_choice}]')
-    render(board, c_choice, h_choice)
+    limpar_tela()
+    print(f'Vez do Computador [{escolha_pc}]')
+    imprimir_tabuleiro(tabuleiro, escolha_pc, escolha_jogador)
 
-    if depth == 9:
-        x = choice([0, 1, 2])
-        y = choice([0, 1, 2])
+    if profundidade == 9:
+        x = escolher([0, 1, 2])
+        y = escolher([0, 1, 2])
     else:
-        move = minimax(board, depth, COMP)
-        x, y = move[0], move[1]
+        jogada = minimax(tabuleiro, profundidade, PC)
+        x, y = jogada[0], jogada[1]
 
-    set_move(x, y, COMP)
+    fazer_jogada(x, y, PC)
     time.sleep(1)
 
 
-def human_turn(c_choice, h_choice):
-    depth = len(empty_cells(board))
-    if depth == 0 or game_over(board):
+def sua_vez(escolha_pc, escolha_jogador):
+    profundidade = len(casas_vazias(tabuleiro))
+    if profundidade == 0 or fim_de_jogo(tabuleiro):
         return
 
-    # Dictionary of valid moves
-    move = -1
-    moves = {
+    # Dicionário de jogadas válidas
+    jogada = -1
+    movimentos = {
         1: [0, 0], 2: [0, 1], 3: [0, 2],
         4: [1, 0], 5: [1, 1], 6: [1, 2],
         7: [2, 0], 8: [2, 1], 9: [2, 2],
     }
 
-    clean()
-    print(f'Human turn [{h_choice}]')
-    render(board, c_choice, h_choice)
+    limpar_tela()
+    print(f'Sua vez [{escolha_jogador}]')
+    imprimir_tabuleiro(tabuleiro, escolha_pc, escolha_jogador)
 
-    while move < 1 or move > 9:
+    while jogada < 1 or jogada > 9:
         try:
-            move = int(input('Use numpad (1..9): '))
-            coord = moves[move]
-            can_move = set_move(coord[0], coord[1], HUMAN)
+            jogada = int(input('Use o teclado numérico (1..9): '))
+            coord = movimentos[jogada]
+            pode_jogar = fazer_jogada(coord[0], coord[1], JOGADOR)
 
-            if not can_move:
-                print('Bad move')
-                move = -1
+            if not pode_jogar:
+                print('Jogada inválida! Essa casa já está ocupada.')
+                jogada = -1
         except (EOFError, KeyboardInterrupt):
-            print('Bye')
+            print('\nFalou! Até a próxima.')
             exit()
         except (KeyError, ValueError):
-            print('Bad choice')
+            print('Opção inválida! Digite um número de 1 a 9.')
 
 
-def main():
-    clean()
-    h_choice = ''  # X or O
-    c_choice = ''  # X or O
-    first = ''  # if human is the first
+def principal():
+    limpar_tela()
+    escolha_jogador = ''  # X ou O
+    escolha_pc = ''  # X ou O
+    primeiro = ''  # se o jogador começa
 
-    # Human chooses X or O to play
-    while h_choice != 'O' and h_choice != 'X':
+    # Jogador escolhe X ou O para jogar
+    while escolha_jogador != 'O' and escolha_jogador != 'X':
         try:
             print('')
-            h_choice = input('Choose X or O\nChosen: ').upper()
+            escolha_jogador = input('Escolha X ou O\nSua escolha: ').upper()
         except (EOFError, KeyboardInterrupt):
-            print('Bye')
+            print('\nFalou! Até a próxima.')
             exit()
         except (KeyError, ValueError):
-            print('Bad choice')
+            print('Opção inválida!')
 
-    # Setting computer's choice
-    if h_choice == 'X':
-        c_choice = 'O'
+    # Configurando a escolha do computador
+    if escolha_jogador == 'X':
+        escolha_pc = 'O'
     else:
-        c_choice = 'X'
+        escolha_pc = 'X'
 
-    # Human may starts first
-    clean()
-    while first != 'Y' and first != 'N':
+    # Jogador pode escolher começar primeiro
+    limpar_tela()
+    while primeiro != 'S' and primeiro != 'N':
         try:
-            first = input('First to start?[y/n]: ').upper()
+            primeiro = input('Você quer ser o primeiro a jogar? [s/n]: ').upper()
         except (EOFError, KeyboardInterrupt):
-            print('Bye')
+            print('\nFalou! Até a próxima.')
             exit()
         except (KeyError, ValueError):
-            print('Bad choice')
+            print('Opção inválida!')
 
-    # Main loop of this game
-    while len(empty_cells(board)) > 0 and not game_over(board):
-        if first == 'N':
-            ai_turn(c_choice, h_choice)
-            first = ''
+    # Loop principal do jogo
+    while len(casas_vazias(tabuleiro)) > 0 and not fim_de_jogo(tabuleiro):
+        if primeiro == 'N':
+            jogada_do_pc(escolha_pc, escolha_jogador)
+            primeiro = ''
 
-        human_turn(c_choice, h_choice)
-        ai_turn(c_choice, h_choice)
+        sua_vez(escolha_pc, escolha_jogador)
+        jogada_do_pc(escolha_pc, escolha_jogador)
 
-    # Game over message
-    if wins(board, HUMAN):
-        clean()
-        print(f'Human turn [{h_choice}]')
-        render(board, c_choice, h_choice)
-        print('YOU WIN!')
-    elif wins(board, COMP):
-        clean()
-        print(f'Computer turn [{c_choice}]')
-        render(board, c_choice, h_choice)
-        print('YOU LOSE!')
+    # Mensagens de fim de jogo
+    if venceu(tabuleiro, JOGADOR):
+        limpar_tela()
+        print(f'Sua vez [{escolha_jogador}]')
+        imprimir_tabuleiro(tabuleiro, escolha_pc, escolha_jogador)
+        print('VOCÊ VENCEU!')
+    elif venceu(tabuleiro, PC):
+        limpar_tela()
+        print(f'Vez do Computador [{escolha_pc}]')
+        imprimir_tabuleiro(tabuleiro, escolha_pc, escolha_jogador)
+        print('VOCÊ PERDEU!')
     else:
-        clean()
-        render(board, c_choice, h_choice)
-        print('DRAW!')
+        limpar_tela()
+        imprimir_tabuleiro(tabuleiro, escolha_pc, escolha_jogador)
+        print('DEU VELHA!')
 
     exit()
 
 
 if __name__ == '__main__':
-    main()
+    principal()
